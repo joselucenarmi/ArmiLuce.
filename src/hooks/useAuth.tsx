@@ -10,6 +10,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, fullName?: string) => Promise<{ error: AuthError | null }>;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
+  updateProfile: (updates: Partial<Profile>) => Promise<{ error: Error | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -88,6 +89,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
   };
 
+  const updateProfile = async (updates: Partial<Profile>) => {
+    if (!user) {
+      return { error: new Error('Usuario no autenticado') };
+    }
+
+    const { error } = await supabase
+      .from('profiles')
+      .update(updates)
+      .eq('id', user.id);
+
+    if (!error) {
+      setProfile((prev) => prev ? { ...prev, ...updates } : null);
+    }
+
+    return { error };
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -98,6 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signUp,
         signIn,
         signOut,
+        updateProfile,
       }}
     >
       {children}

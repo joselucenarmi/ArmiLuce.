@@ -14,6 +14,9 @@ export interface Profile {
   id: string;
   email: string;
   full_name: string | null;
+  subscription_plan?: string;
+  subscription_status?: string;
+  stripe_customer_id?: string;
   created_at: string;
   updated_at: string;
 }

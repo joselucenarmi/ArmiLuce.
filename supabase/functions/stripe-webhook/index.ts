@@ -40,22 +40,13 @@ Deno.serve(async (req: Request) => {
         const plan = session.metadata?.plan || 'pro';
 
         if (userId) {
-          // Update subscription in database
-          await supabase
-            .from('subscriptions')
-            .update({
-              plan: plan as 'pro' | 'professional',
-              status: 'active',
-              stripe_subscription_id: session.subscription as string,
-              current_period_start: new Date().toISOString(),
-              current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-            })
-            .eq('user_id', userId);
-
-          // Update profile plan
+          // Update profile with subscription info
           await supabase
             .from('profiles')
-            .update({ subscription_plan: plan })
+            .update({
+              subscription_plan: plan,
+              subscription_status: 'active',
+            })
             .eq('id', userId);
         }
         break;
@@ -66,26 +57,23 @@ Deno.serve(async (req: Request) => {
         const customerId = subscription.customer as string;
 
         // Find user by customer ID
-        const { data: subData } = await supabase
-          .from('subscriptions')
-          .select('user_id')
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id')
           .eq('stripe_customer_id', customerId)
           .maybeSingle();
 
-        if (subData?.user_id) {
-          const plan = subscription.metadata?.plan || 'pro';
+        if (profile?.id) {
           const status = subscription.status === 'active' ? 'active' :
                          subscription.status === 'canceled' ? 'canceled' :
                          subscription.status;
 
           await supabase
-            .from('subscriptions')
+            .from('profiles')
             .update({
-              status: status as 'active' | 'canceled' | 'past_due',
-              current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-              current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+              subscription_status: status,
             })
-            .eq('user_id', subData.user_id);
+            .eq('id', profile.id);
         }
         break;
       }
@@ -95,25 +83,20 @@ Deno.serve(async (req: Request) => {
         const customerId = subscription.customer as string;
 
         // Find user by customer ID
-        const { data: subData } = await supabase
-          .from('subscriptions')
-          .select('user_id')
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id')
           .eq('stripe_customer_id', customerId)
           .maybeSingle();
 
-        if (subData?.user_id) {
-          await supabase
-            .from('subscriptions')
-            .update({
-              plan: 'basic',
-              status: 'canceled',
-            })
-            .eq('user_id', subData.user_id);
-
+        if (profile?.id) {
           await supabase
             .from('profiles')
-            .update({ subscription_plan: 'basic' })
-            .eq('id', subData.user_id);
+            .update({
+              subscription_plan: 'basic',
+              subscription_status: 'canceled',
+            })
+            .eq('id', profile.id);
         }
         break;
       }
@@ -122,17 +105,17 @@ Deno.serve(async (req: Request) => {
         const invoice = event.data.object as Stripe.Invoice;
         const customerId = invoice.customer as string;
 
-        const { data: subData } = await supabase
-          .from('subscriptions')
-          .select('user_id')
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id')
           .eq('stripe_customer_id', customerId)
           .maybeSingle();
 
-        if (subData?.user_id) {
+        if (profile?.id) {
           await supabase
-            .from('subscriptions')
-            .update({ status: 'active' })
-            .eq('user_id', subData.user_id);
+            .from('profiles')
+            .update({ subscription_status: 'active' })
+            .eq('id', profile.id);
         }
         break;
       }
@@ -141,17 +124,17 @@ Deno.serve(async (req: Request) => {
         const invoice = event.data.object as Stripe.Invoice;
         const customerId = invoice.customer as string;
 
-        const { data: subData } = await supabase
-          .from('subscriptions')
-          .select('user_id')
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id')
           .eq('stripe_customer_id', customerId)
           .maybeSingle();
 
-        if (subData?.user_id) {
+        if (profile?.id) {
           await supabase
-            .from('subscriptions')
-            .update({ status: 'past_due' })
-            .eq('user_id', subData.user_id);
+            .from('profiles')
+            .update({ subscription_status: 'past_due' })
+            .eq('id', profile.id);
         }
         break;
       }

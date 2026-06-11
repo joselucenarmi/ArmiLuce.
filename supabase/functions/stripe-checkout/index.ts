@@ -50,24 +50,18 @@ Deno.serve(async (req: Request) => {
     const { priceId, plan } = await req.json();
 
     // Get or create Stripe customer
-    const { data: subscription } = await supabase
-      .from('subscriptions')
-      .select('stripe_customer_id')
-      .eq('user_id', user.id)
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('stripe_customer_id, full_name')
+      .eq('id', user.id)
       .maybeSingle();
 
-    let customerId = subscription?.stripe_customer_id;
+    let customerId = profile?.stripe_customer_id;
 
     if (!customerId) {
-      // Get user email
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', user.id)
-        .maybeSingle();
-
       const customer = await stripe.customers.create({
         email: user.email,
+        name: profile?.full_name || undefined,
         metadata: {
           supabase_user_id: user.id,
         },
@@ -75,11 +69,11 @@ Deno.serve(async (req: Request) => {
 
       customerId = customer.id;
 
-      // Update subscription with customer ID
+      // Update profile with customer ID
       await supabase
-        .from('subscriptions')
+        .from('profiles')
         .update({ stripe_customer_id: customerId })
-        .eq('user_id', user.id);
+        .eq('id', user.id);
     }
 
     // Create checkout session
