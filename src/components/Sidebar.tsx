@@ -40,6 +40,7 @@ export function Sidebar() {
     { path: '/notifications', label: 'Notificaciones', icon: unreadCount > 0 ? BellRing : Bell, badge: unreadCount },
     { path: '/alerts', label: 'Alertas', icon: Bell },
     { path: '/favorites', label: 'Favoritos', icon: Heart },
+    { path: '/pricing', label: 'Planes', icon: TrendingUp },
     { path: '/settings', label: 'Ajustes', icon: Settings },
   ];
 

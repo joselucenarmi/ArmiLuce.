@@ -12,6 +12,11 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2023-10-16',
 });
 
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL')!,
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+);
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders });
@@ -24,31 +29,26 @@ Deno.serve(async (req: Request) => {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
-
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
 
     if (userError || !user) {
       throw new Error('Invalid token');
     }
 
-    // Get Stripe customer ID
-    const { data: subscription } = await supabase
-      .from('subscriptions')
+    // Get Stripe customer ID from profile
+    const { data: profile } = await supabase
+      .from('profiles')
       .select('stripe_customer_id')
-      .eq('user_id', user.id)
+      .eq('id', user.id)
       .maybeSingle();
 
-    if (!subscription?.stripe_customer_id) {
+    if (!profile?.stripe_customer_id) {
       throw new Error('No Stripe customer found');
     }
 
     const origin = req.headers.get('origin') || 'http://localhost:5173';
     const portalSession = await stripe.billingPortal.sessions.create({
-      customer: subscription.stripe_customer_id,
+      customer: profile.stripe_customer_id,
       return_url: `${origin}/settings`,
     });
 
