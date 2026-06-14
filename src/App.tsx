@@ -12,7 +12,6 @@ import { Alerts } from './pages/Alerts';
 import { Favorites } from './pages/Favorites';
 import { Notifications } from './pages/Notifications';
 import { Settings } from './pages/Settings';
-import { Pricing } from './pages/Pricing';
 
 const queryClient = new QueryClient({
   defaultOptions: {
