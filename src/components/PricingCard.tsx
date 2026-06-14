@@ -21,6 +21,7 @@ export function PricingCard({ product, isPopular = false }: PricingCardProps) {
     setIsLoading(true);
     
     try {
+      console.log("VITE_SUPABASE_URL =", import.meta.env.VITE_SUPABASE_URL);
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-checkout`, {
         method: 'POST',
         headers: {
