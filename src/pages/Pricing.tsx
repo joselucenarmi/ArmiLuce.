@@ -1,4 +1,3 @@
-import React from 'react';
 import { STRIPE_PRODUCTS } from '../stripe-config';
 import { PricingCard } from '../components/PricingCard';
 
@@ -16,16 +15,14 @@ export function Pricing() {
           </p>
         </div>
 
-        <div className="flex justify-center">
-          <div className="grid grid-cols-1 gap-8 max-w-md">
-            {STRIPE_PRODUCTS.map((product, index) => (
-              <PricingCard
-                key={product.priceId}
-                product={product}
-                isPopular={index === 0}
-              />
-            ))}
-          </div>
+        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          {STRIPE_PRODUCTS.map((product) => (
+            <PricingCard
+              key={product.id}
+              product={product}
+              isPopular={product.planType === 'premium'}
+            />
+          ))}
         </div>
 
         <div className="mt-16 text-center">

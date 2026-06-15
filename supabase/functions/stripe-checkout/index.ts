@@ -17,18 +17,6 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 );
 
-// Stripe Price IDs - Replace with your actual price IDs from Stripe Dashboard
-const PRICE_IDS: Record<string, Record<string, string>> = {
-  pro: {
-    monthly: 'price_pro_monthly',
-    annual: 'price_pro_annual',
-  },
-  professional: {
-    monthly: 'price_professional_monthly',
-    annual: 'price_professional_annual',
-  },
-};
-
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders });
@@ -47,7 +35,11 @@ Deno.serve(async (req: Request) => {
       throw new Error('Invalid token');
     }
 
-    const { priceId, plan } = await req.json();
+    const { priceId, plan, duration } = await req.json();
+
+    if (!priceId || !plan) {
+      throw new Error('Missing required fields: priceId or plan');
+    }
 
     // Get or create Stripe customer
     const { data: profile } = await supabase
@@ -81,18 +73,19 @@ Deno.serve(async (req: Request) => {
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       payment_method_types: ['card'],
-      line_items: priceId ? [
+      line_items: [
         {
           price: priceId,
           quantity: 1,
         },
-      ] : undefined,
+      ],
       mode: 'subscription',
       success_url: `${origin}/settings?payment=success`,
       cancel_url: `${origin}/pricing?payment=canceled`,
       metadata: {
         user_id: user.id,
-        plan: plan || 'pro',
+        plan: plan,
+        duration: duration?.toString() || '1',
       },
     });
 

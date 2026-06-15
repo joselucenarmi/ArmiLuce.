@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase, Alert } from '../lib/supabase';
-import { useAuth } from '../hooks/useAuth';
 import { cn } from '../lib/utils';
-import { useNavigate } from 'react-router-dom';
 import {
   Bell,
   BellOff,
@@ -31,8 +29,6 @@ const LISTING_TYPES = [
 ];
 
 export function Alerts() {
-  const { profile } = useAuth();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const [showCreateModal, setShowCreateModal] = useState(false);

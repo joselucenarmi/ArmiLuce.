@@ -11,7 +11,6 @@ import {
   Grid,
   List,
   Building2,
-  ExternalLink,
 } from 'lucide-react';
 
 const CATEGORIES = [

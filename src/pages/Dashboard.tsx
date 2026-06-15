@@ -1,8 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase, Listing } from '../lib/supabase';
+import { supabase, Listing, Favorite } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { formatPrice, formatNumber } from '../lib/utils';
 import { Link, useNavigate } from 'react-router-dom';
+
+type FavoriteWithListing = Favorite & { listings?: Listing | null };
 import {
   TrendingUp,
   Bell,
@@ -11,7 +13,7 @@ import {
   MapPin,
   Eye,
   ArrowRight,
-  Plus,
+
 } from 'lucide-react';
 
 export function Dashboard() {
@@ -53,7 +55,7 @@ export function Dashboard() {
     },
   });
 
-  const { data: favorites = [] } = useQuery({
+  const { data: favorites = [] } = useQuery<FavoriteWithListing[]>({
     queryKey: ['dashboard-favorites'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -63,7 +65,7 @@ export function Dashboard() {
         .limit(4);
 
       if (error) throw error;
-      return data;
+      return (data as FavoriteWithListing[]) || [];
     },
   });
 
@@ -218,7 +220,7 @@ export function Dashboard() {
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
           {favorites.length > 0 ? (
-            favorites.map((fav: any) => {
+            favorites.map((fav) => {
               const imageUrl = (fav.listing?.images && fav.listing.images.length > 0)
                 ? fav.listing.images[0]
                 : fav.listing?.image_url || 'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800';

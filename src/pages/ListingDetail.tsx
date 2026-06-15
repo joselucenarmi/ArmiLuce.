@@ -23,11 +23,11 @@ export function ListingDetail() {
     enabled: !!id,
   });
 
-  const { data: { user } } = useQuery({
+  const { data: user } = useQuery({
     queryKey: ['user'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      return user;
+      const { data } = await supabase.auth.getUser();
+      return data.user;
     },
   });
 

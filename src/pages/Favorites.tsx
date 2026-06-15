@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase, Listing } from '../lib/supabase';
+import { supabase, Listing, Favorite } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { formatPrice, formatNumber, cn } from '../lib/utils';
 import { Heart, Trash2, Search, Grid, List, MapPin, Calendar } from 'lucide-react';
+
+type FavoriteWithListing = Favorite & { listings?: Listing | null };
 
 export function Favorites() {
   const navigate = useNavigate();
@@ -13,7 +15,7 @@ export function Favorites() {
   const [sortBy, setSortBy] = useState('created_at');
   const [query, setQuery] = useState('');
 
-  const { data: favorites = [], isLoading } = useQuery({
+  const { data: favorites = [], isLoading } = useQuery<FavoriteWithListing[]>({
     queryKey: ['favorites'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -22,7 +24,7 @@ export function Favorites() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      return (data as FavoriteWithListing[]) || [];
     },
   });
 
@@ -35,14 +37,14 @@ export function Favorites() {
     },
   });
 
-  const filteredFavorites = favorites.filter((fav: any) => {
+  const filteredFavorites = favorites.filter((fav) => {
     if (!query) return true;
     const searchLower = query.toLowerCase();
     return fav.listings?.title?.toLowerCase().includes(searchLower) ||
            fav.listings?.location?.toLowerCase().includes(searchLower);
   });
 
-  const sortedFavorites = [...filteredFavorites].sort((a: any, b: any) => {
+  const sortedFavorites = [...filteredFavorites].sort((a, b) => {
     switch (sortBy) {
       case 'price': return (a.listings?.price || 0) - (b.listings?.price || 0);
       case 'price-desc': return (b.listings?.price || 0) - (a.listings?.price || 0);
@@ -127,11 +129,11 @@ export function Favorites() {
         </div>
       ) : viewMode === 'grid' ? (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {sortedFavorites.map((fav: any) => (
+          {sortedFavorites.map((fav) => (
             <FavoriteCard
               key={fav.id}
               favorite={fav}
-              listing={fav.listings}
+              listing={fav.listings ?? null}
               onRemove={() => deleteMutation.mutate(fav.id)}
               onClick={() => navigate(`/listing/${fav.listings?.id}`)}
             />
@@ -139,11 +141,11 @@ export function Favorites() {
         </div>
       ) : (
         <div className="space-y-3">
-          {sortedFavorites.map((fav: any) => (
+          {sortedFavorites.map((fav) => (
             <FavoriteListItem
               key={fav.id}
               favorite={fav}
-              listing={fav.listings}
+              listing={fav.listings ?? null}
               onRemove={() => deleteMutation.mutate(fav.id)}
               onClick={() => navigate(`/listing/${fav.listings?.id}`)}
             />
@@ -154,7 +156,7 @@ export function Favorites() {
   );
 }
 
-function FavoriteCard({ favorite, listing, onRemove, onClick }: { favorite: any; listing: Listing | null; onRemove: () => void; onClick: () => void }) {
+function FavoriteCard({ favorite, listing, onRemove, onClick }: { favorite: FavoriteWithListing; listing: Listing | null; onRemove: () => void; onClick: () => void }) {
   const image = (listing?.images && listing.images.length > 0)
     ? listing.images[0]
     : listing?.image_url || 'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800';
@@ -205,7 +207,7 @@ function FavoriteCard({ favorite, listing, onRemove, onClick }: { favorite: any;
   );
 }
 
-function FavoriteListItem({ favorite, listing, onRemove, onClick }: { favorite: any; listing: Listing | null; onRemove: () => void; onClick: () => void }) {
+function FavoriteListItem({ favorite, listing, onRemove, onClick }: { favorite: FavoriteWithListing; listing: Listing | null; onRemove: () => void; onClick: () => void }) {
   const image = (listing?.images && listing.images.length > 0)
     ? listing.images[0]
     : listing?.image_url || 'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800';
