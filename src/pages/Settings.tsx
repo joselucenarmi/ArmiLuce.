@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { User, Mail, Shield, Save, Loader2, LogOut } from 'lucide-react';
-import { cn } from '../lib/utils';
 
 export function Settings() {
   const { profile, user, updateProfile, signOut } = useAuth();
