@@ -5,6 +5,7 @@ import { Sidebar } from './Sidebar';
 import { Bell, BellRing, Search } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
+import { SubscriptionStatus } from './SubscriptionStatus';
 
 interface LayoutProps {
   children: ReactNode;
@@ -50,6 +51,11 @@ export function Layout({ children }: LayoutProps) {
           </div>
 
           <div className="flex items-center gap-4">
+            {/* Premium Status */}
+            <div className="hidden lg:flex items-center">
+              <SubscriptionStatus />
+            </div>
+
             {/* Notifications */}
             <button
               onClick={() => navigate('/notifications')}
