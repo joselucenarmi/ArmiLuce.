@@ -8,7 +8,7 @@ export function useSubscription() {
   const createCheckout = async ({ priceId, plan }: { priceId: string; plan: string }) => {
     if (!user) throw new Error('Usuario no autenticado');
 
-    const { data, error } = await supabase.functions.invoke('create-checkout', {
+    const { data, error } = await supabase.functions.invoke('stripe-checkout', {
       body: { priceId, plan },
     });
 

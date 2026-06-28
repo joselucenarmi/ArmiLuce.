@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase, Alert } from '../lib/supabase';
 import { cn } from '../lib/utils';
+
+
 import {
   Bell,
   BellOff,
@@ -37,7 +39,14 @@ export function Alerts() {
   const { data: alerts = [], isLoading } = useQuery({
     queryKey: ['alerts'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('alerts').select('*').order('created_at', { ascending: false });
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      const { data, error } = await supabase
+        .from('alerts')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
       if (error) throw error;
       return data as Alert[];
     },
@@ -237,7 +246,18 @@ function AlertModal({ alert, onClose, onSuccess }: AlertModalProps) {
     if (alert) {
       ({ error } = await supabase.from('alerts').update(data).eq('id', alert.id));
     } else {
-      ({ error } = await supabase.from('alerts').insert({ ...data, is_active: true }));
+      const { data: { user: sessionUser } } = await supabase.auth.getUser();
+
+      if (!sessionUser) {
+        setLoading(false);
+        return;
+      }
+
+      ({ error } = await supabase.from('alerts').insert({
+        ...data,
+        user_id: sessionUser.id,
+        is_active: true,
+      }));
     }
 
     setLoading(false);
