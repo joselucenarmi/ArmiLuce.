@@ -13,11 +13,7 @@ import {
   Building2,
 } from 'lucide-react';
 
-const CATEGORIES = [
-  { value: 'property', label: 'Inmuebles' },
-  { value: 'vehicle', label: 'Vehiculos' },
-  { value: 'land', label: 'Terrenos' },
-];
+import { getAllCategoryOptions, getTypesForCategory } from '../lib/filters/catalog';
 
 const LISTING_TYPES = [
   { value: 'terreno', label: 'Terreno' },
@@ -25,7 +21,9 @@ const LISTING_TYPES = [
   { value: 'local', label: 'Local Comercial' },
   { value: 'nave', label: 'Nave Industrial' },
   { value: 'otros', label: 'Otros' },
-];
+] as const;
+
+
 
 const SORT_OPTIONS = [
   { value: 'created_at', label: 'Mas recientes' },
@@ -214,7 +212,8 @@ export function Search() {
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-300">Categoria</label>
               <div className="flex flex-wrap gap-2">
-                {CATEGORIES.map((cat) => (
+                {getAllCategoryOptions().map((cat) => (
+
                   <button
                     key={cat.value}
                     onClick={() => toggleArrayFilter(setCategories, cat.value, categories)}
@@ -235,7 +234,11 @@ export function Search() {
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-300">Tipo</label>
               <div className="flex flex-wrap gap-2">
-                {LISTING_TYPES.map((type) => (
+                {(
+                  categories.length === 1
+                    ? getTypesForCategory(categories[0] as import('../lib/filters/catalog').ListingCategory)
+                    : LISTING_TYPES
+                ).map((type) => (
                   <button
                     key={type.value}
                     onClick={() => toggleArrayFilter(setTypes, type.value, types)}

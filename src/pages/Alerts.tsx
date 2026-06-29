@@ -16,11 +16,8 @@ import {
   Tag,
 } from 'lucide-react';
 
-const CATEGORIES = [
-  { value: 'property', label: 'Inmuebles' },
-  { value: 'vehicle', label: 'Vehiculos' },
-  { value: 'land', label: 'Terrenos' },
-];
+import { getAllCategoryOptions } from '../lib/filters/catalog';
+
 
 const LISTING_TYPES = [
   { value: 'terreno', label: 'Terreno' },
@@ -29,6 +26,7 @@ const LISTING_TYPES = [
   { value: 'nave', label: 'Nave Industrial' },
   { value: 'otros', label: 'Otros' },
 ];
+
 
 export function Alerts() {
   const queryClient = useQueryClient();
@@ -72,8 +70,9 @@ export function Alerts() {
 
   const getAlertTitle = (alert: Alert) => {
     if (alert.category) {
-      return `Alerta: ${CATEGORIES.find(c => c.value === alert.category)?.label || alert.category}`;
+      return `Alerta: ${getAllCategoryOptions().find((c) => c.value === alert.category)?.label || alert.category}`;
     }
+
     if (alert.type) {
       return `Alerta: ${LISTING_TYPES.find(t => t.value === alert.type)?.label || alert.type}`;
     }
@@ -144,14 +143,16 @@ export function Alerts() {
 
                   <div className="mt-4 flex flex-wrap gap-2">
                     {alert.category && (
-                      <span className="px-2 py-1 bg-blue-500/10 border border-blue-500/30 rounded-lg text-xs text-blue-400 flex items-center gap-1">
+              <span className="px-2 py-1 bg-blue-500/10 border border-blue-500/30 rounded-lg text-xs text-blue-400 flex items-center gap-1">
                         <Tag size={12} />
-                        {CATEGORIES.find(c => c.value === alert.category)?.label || alert.category}
+                        {getAllCategoryOptions().find((c) => c.value === alert.category)?.label || alert.category}
                       </span>
+
                     )}
                     {alert.type && (
                       <span className="px-2 py-1 bg-slate-700/50 rounded-lg text-xs text-slate-300">
                         Tipo: {LISTING_TYPES.find(t => t.value === alert.type)?.label || alert.type}
+
                       </span>
                     )}
                     {alert.max_price && (
@@ -285,7 +286,7 @@ function AlertModal({ alert, onClose, onSuccess }: AlertModalProps) {
               className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
             >
               <option value="">Todas las categorias</option>
-              {CATEGORIES.map((c) => (
+              {getAllCategoryOptions().map((c) => (
                 <option key={c.value} value={c.value}>{c.label}</option>
               ))}
             </select>
