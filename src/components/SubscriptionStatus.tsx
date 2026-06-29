@@ -4,14 +4,23 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Crown, AlertCircle, Star } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
+import {
+  getSubscriptionDisplayLabel,
+  isSubscriptionActive,
+  normalizeInternalPlan,
+  type DisplaySubscriptionPlan,
+} from '../lib/subscriptionPlan';
 
-type SubscriptionPlan = 'basic' | 'pro' | 'professional';
-type PlanBadge = 'basic' | 'pro' | 'premium';
+
+
+
+type PlanBadge = DisplaySubscriptionPlan;
 
 export function SubscriptionStatus() {
   const { user } = useAuth();
   const location = useLocation();
   const queryClient = useQueryClient();
+
 
   const queryKey = useMemo(() => ['subscription-status', user?.id] as const, [user?.id]);
 
@@ -21,8 +30,9 @@ export function SubscriptionStatus() {
     queryFn: async () => {
       const userId = user?.id;
       if (!userId) {
-        return { subscription_plan: 'basic' as SubscriptionPlan, subscription_status: '' };
+        return { subscription_plan: 'basic' as DisplaySubscriptionPlan, subscription_status: '' };
       }
+
 
       const { data } = await supabase
         .from('profiles')
@@ -30,13 +40,15 @@ export function SubscriptionStatus() {
         .eq('id', userId)
         .single();
 
-      if (!data) return { subscription_plan: 'basic' as SubscriptionPlan, subscription_status: '' };
+      if (!data) {
+        // No hay fila de perfil: no podemos inferir un plan real
+        return { subscription_plan: 'basic' as DisplaySubscriptionPlan, subscription_status: '' };
+      }
 
-      const rawPlan = (data.subscription_plan || 'basic') as string;
-      const normalizedPlan: SubscriptionPlan =
-        rawPlan === 'pro' || rawPlan === 'professional' || rawPlan === 'basic'
-          ? (rawPlan as SubscriptionPlan)
-          : 'basic';
+      // Si existe un plan en Supabase, no lo “pisamos” con defaults: el label final depende de isSubscriptionActive(subscription_status)
+
+
+      const normalizedPlan = normalizeInternalPlan(data.subscription_plan);
 
       return {
         subscription_plan: normalizedPlan,
@@ -47,40 +59,42 @@ export function SubscriptionStatus() {
     refetchOnReconnect: true,
   });
 
-  // Invalidate/refetch cuando el usuario vuelve desde /settings tras un checkout/portal
-  // settings?payment=success|canceled (ver PricingCard -> successUrl/cancelUrl)
+  // Refrescar estado al volver de Stripe checkout/portal
+  // (Stripe puede devolver a una ruta con query params; no dependemos de pathname)
   useEffect(() => {
     if (!user) return;
 
     const search = location.search || '';
-    const cameFromSettingsFlow =
-      location.pathname === '/settings' &&
-      (search.includes('payment=success') || search.includes('payment=canceled'));
+    const isStripeReturn =
+      search.includes('payment=success') ||
+      search.includes('payment=canceled') ||
+      search.includes('checkout=success') ||
+      search.includes('checkout=canceled') ||
+      search.includes('portal=success') ||
+      search.includes('portal=canceled');
 
-    if (!cameFromSettingsFlow) return;
+    if (!isStripeReturn) return;
 
     queryClient.invalidateQueries({ queryKey });
-  }, [user, location.pathname, location.search, queryClient, queryKey]);
+  }, [user, location.search, queryClient, queryKey]);
+
 
   if (!user) return null;
 
-  const subscriptionPlan = data?.subscription_plan ?? 'basic';
+  const subscriptionPlan = normalizeInternalPlan(data?.subscription_plan);
   const subscriptionStatus = data?.subscription_status ?? '';
 
-  const isActive = subscriptionStatus === 'active';
+
+  const isActive = isSubscriptionActive(subscriptionStatus);
+
 
   const planLabel = (() => {
-    if (!isActive) return { label: 'Básico', badge: 'basic' as PlanBadge };
+    if (!isActive) return { label: 'BÁSICO', badge: 'basic' as PlanBadge };
 
-    switch (subscriptionPlan) {
-      case 'professional':
-        return { label: 'Premium', badge: 'premium' as PlanBadge };
-      case 'pro':
-        return { label: 'Pro', badge: 'pro' as PlanBadge };
-      case 'basic':
-      default:
-        return { label: 'Básico', badge: 'basic' as PlanBadge };
-    }
+    return {
+      label: getSubscriptionDisplayLabel(subscriptionPlan),
+      badge: subscriptionPlan as PlanBadge,
+    };
   })();
 
   const badgeClasses =
@@ -88,10 +102,18 @@ export function SubscriptionStatus() {
       ? 'bg-yellow-100 text-yellow-800'
       : planLabel.badge === 'pro'
         ? 'bg-blue-100 text-blue-800'
-        : 'bg-gray-100 text-gray-600';
+        : planLabel.badge === 'alerts'
+          ? 'bg-emerald-100 text-emerald-800'
+          : 'bg-gray-100 text-gray-600';
 
   const Icon =
-    planLabel.badge === 'premium' ? Crown : planLabel.badge === 'pro' ? Star : AlertCircle;
+    planLabel.badge === 'premium'
+      ? Crown
+      : planLabel.badge === 'pro'
+        ? Star
+        : planLabel.badge === 'alerts'
+          ? AlertCircle
+          : AlertCircle;
 
   return (
     <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${badgeClasses}`}>
