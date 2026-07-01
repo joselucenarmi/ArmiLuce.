@@ -1,10 +1,11 @@
-export * from './types';
+export * from './types/index.ts';
 
-export * from './auth/getOAuthToken';
-export * from './browse/browseEbayItems';
-export * from './browse/types';
-export * from './normalizer/normalizeEbayListings';
-export * from './importer/deduplicate';
-export * from './importer/insertListings';
-export * from './entrypoints/importEbayListings';
+export * from './auth/getOAuthToken.ts';
+export * from './browse/browseEbayItems.ts';
+export * from './browse/types.ts';
+export * from './normalizer/normalizeEbayListings.ts';
+export * from './importer/deduplicate.ts';
+export * from './importer/insertListings.ts';
+export * from './entrypoints/importEbayListings.ts';
+export * from './builder/importerFlow.ts';
 

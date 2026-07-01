@@ -1,5 +1,5 @@
-import type { EbayClientCredentialsConfig, EbayToken, EbayTokenCache, EbayEnvironment } from '../types';
-import { getEbayOAuthTokenEndpoint } from './oauthEndpoint';
+import type { EbayClientCredentialsConfig, EbayToken, EbayTokenCache, EbayEnvironment } from '../types/index.ts';
+import { getEbayOAuthTokenEndpoint } from './oauthEndpoint.ts';
 
 export async function getOAuthToken(params: {
   config: EbayClientCredentialsConfig;
@@ -16,6 +16,9 @@ export async function getOAuthToken(params: {
 
   const body = new URLSearchParams();
   body.set('grant_type', 'client_credentials');
+  // Requerido para poder llamar a Browse API (item_summary/search); sin este
+  // scope el token se genera pero eBay responde 403 Access Denied.
+  body.set('scope', 'https://api.ebay.com/oauth/api_scope');
 
   const res = await fetch(tokenEndpoint, {
     method: 'POST',

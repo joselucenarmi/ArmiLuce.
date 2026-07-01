@@ -2,14 +2,14 @@ import type {
   EbayClientCredentialsConfig,
   EbayTokenCache,
   NormalizedListing,
-} from '../types';
+} from '../types/index.ts';
 
 
-import type { EbayBrowseResponse } from '../browse/types';
-import { browseEbayAds } from '../browse/browseEbayItems';
-import { normalizeEbayListings } from '../normalizer/normalizeEbayListings';
-import { deduplicateListings } from '../importer/deduplicate';
-import { insertListingsToDb } from '../importer/insertListings';
+import type { EbayBrowseResponse } from '../browse/types.ts';
+import { browseEbayAds } from '../browse/browseEbayItems.ts';
+import { normalizeEbayListings } from '../normalizer/normalizeEbayListings.ts';
+import { deduplicateListings } from '../importer/deduplicate.ts';
+import { insertListingsToDb } from '../importer/insertListings.ts';
 
 export async function importEbayListings(params: {
   config: EbayClientCredentialsConfig;

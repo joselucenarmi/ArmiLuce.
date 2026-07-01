@@ -1,6 +1,6 @@
-import type { EbayBrowseAdsRequest, EbayBrowseResponse } from './types';
-import type { EbayClientCredentialsConfig, EbayToken, EbayTokenCache, EbayBrowseItem } from '../types';
-import { getOAuthToken } from '../auth/getOAuthToken';
+import type { EbayBrowseAdsRequest, EbayBrowseResponse } from './types.ts';
+import type { EbayClientCredentialsConfig, EbayToken, EbayTokenCache, EbayBrowseItem } from '../types/index.ts';
+import { getOAuthToken } from '../auth/getOAuthToken.ts';
 
 function assertString(value: unknown, name: string): string {
   if (typeof value !== 'string' || !value.trim()) {
@@ -54,22 +54,35 @@ export async function browseEbayAds(params: {
         : [];
 
   const items: EbayBrowseItem[] = rawItems.slice(0, request.limit).map((it: any) => {
-    const itemId = assertString(it?.item?.itemId ?? it?.itemId ?? it?.item?.id, 'itemId');
+    const itemId = assertString(it?.itemId ?? it?.item?.itemId ?? it?.item?.id, 'itemId');
 
     const title = typeof it?.title === 'string' ? it.title : undefined;
     const description = typeof it?.shortDescription === 'string' ? it.shortDescription : undefined;
 
-    const galleryURL = Array.isArray(it?.image?.imageUrls)
-      ? it.image.imageUrls.filter((u: any) => typeof u === 'string')
-      : Array.isArray(it?.imageUrls)
-        ? it.imageUrls.filter((u: any) => typeof u === 'string')
+    // Browse API item_summary shape: image.imageUrl (single) + additionalImages[].imageUrl
+    const galleryURL = [
+      ...(typeof it?.image?.imageUrl === 'string' ? [it.image.imageUrl] : []),
+      ...(Array.isArray(it?.additionalImages)
+        ? it.additionalImages
+            .map((img: any) => img?.imageUrl)
+            .filter((u: any) => typeof u === 'string')
+        : []),
+    ];
+
+    const viewItemURL = typeof it?.itemWebUrl === 'string' ? it.itemWebUrl : undefined;
+
+    const location =
+      typeof it?.itemLocation?.city === 'string'
+        ? it.itemLocation.city
+        : typeof it?.itemLocation?.country === 'string'
+          ? it.itemLocation.country
+          : undefined;
+
+    const categoryId = Array.isArray(it?.categories) && it.categories[0]?.categoryId
+      ? String(it.categories[0].categoryId)
+      : it?.categoryId
+        ? String(it.categoryId)
         : undefined;
-
-    const viewItemURL = typeof it?.item?.itemWebUrl === 'string' ? it.item.itemWebUrl : undefined;
-
-    const location = typeof it?.item?.location === 'string' ? it.item.location : undefined;
-
-    const categoryId = it?.categoryId ? String(it.categoryId) : undefined;
 
     const priceValue = it?.price?.value ?? it?.price?.value?.amount ?? it?.price?.amount;
     const priceCurrency = it?.price?.currency ?? it?.price?.value?.currency;
@@ -86,7 +99,7 @@ export async function browseEbayAds(params: {
       itemId,
       title,
       description,
-      galleryURL,
+      galleryURL: galleryURL.length ? galleryURL : undefined,
       viewItemURL,
       location,
       categoryId,

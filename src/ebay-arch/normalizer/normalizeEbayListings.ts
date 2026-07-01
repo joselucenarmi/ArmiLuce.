@@ -1,4 +1,4 @@
-import type { EbayBrowseItem, NormalizedListing } from '../types';
+import type { EbayBrowseItem, NormalizedListing } from '../types/index.ts';
 
 export function normalizeEbayListing(item: EbayBrowseItem): NormalizedListing {
   const title = item.title ?? 'Sin título';

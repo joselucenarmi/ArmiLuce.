@@ -1,24 +1,28 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from 'npm:@supabase/supabase-js@2';
 
 import type {
   EbayClientCredentialsConfig,
   EbayTokenCache,
-} from '../../../src/ebay-arch';
-import { importEbayListingsFlow } from '../../../src/ebay-arch';
+} from '../../../../src/ebay-arch/index.ts';
+import { importEbayListingsFlow } from '../../../../src/ebay-arch/index.ts';
 
-
-
-export const config = {
-  maxDuration: 300,
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
 };
 
 function getEnvOrThrow(name: string): string {
-  const v = process.env[name];
+  const v = Deno.env.get(name);
   if (!v) throw new Error(`Missing env var: ${name}`);
   return v;
 }
 
-export default async function handler(req: any, res: any) {
+Deno.serve(async (req: Request) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 200, headers: corsHeaders });
+  }
+
   try {
     const supabaseUrl = getEnvOrThrow('SUPABASE_URL');
     const serviceRoleKey = getEnvOrThrow('SUPABASE_SERVICE_ROLE_KEY');
@@ -31,7 +35,7 @@ export default async function handler(req: any, res: any) {
     const configEbay: EbayClientCredentialsConfig = {
       clientId: getEnvOrThrow('EBAY_CLIENT_ID'),
       clientSecret: getEnvOrThrow('EBAY_CLIENT_SECRET'),
-      environment: (process.env.EBAY_ENVIRONMENT === 'sandbox' ? 'sandbox' : 'production') as
+      environment: (Deno.env.get('EBAY_ENVIRONMENT') === 'sandbox' ? 'sandbox' : 'production') as
         | 'production'
         | 'sandbox',
     };
@@ -46,20 +50,25 @@ export default async function handler(req: any, res: any) {
       tokenCache,
     });
 
-    // Devolver además 10 recién insertados (o los primeros disponibles si no hay orden garantizado)
+    // Devolver además los últimos anuncios de eBay insertados como evidencia
     const { data, error } = await supabase
       .from('listings')
       .select('*')
+      .eq('source', 'ebay')
+      .order('created_at', { ascending: false })
       .limit(10);
 
     if (error) throw error;
 
-    res.status(200).json({
-      imported: result.imported,
-      sample: data ?? [],
-    });
-  } catch (err: any) {
-    res.status(500).json({ error: err?.message ?? String(err) });
+    return new Response(
+      JSON.stringify({ imported: result.imported, sample: data ?? [] }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  } catch (err) {
+    return new Response(
+      JSON.stringify({ error: (err as Error)?.message ?? String(err) }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
   }
-}
+});
 

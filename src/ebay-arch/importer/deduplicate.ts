@@ -1,4 +1,4 @@
-import type { NormalizedListing } from '../types';
+import type { NormalizedListing } from '../types/index.ts';
 
 export function deduplicateListings(listings: NormalizedListing[]): NormalizedListing[] {
   const seen = new Set<string>();

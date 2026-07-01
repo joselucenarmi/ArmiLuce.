@@ -1,4 +1,4 @@
-import type { EbayEnvironment } from '../types';
+import type { EbayEnvironment } from '../types/index.ts';
 
 export function getEbayOAuthTokenEndpoint(environment: EbayEnvironment): string {
   return environment === 'production'

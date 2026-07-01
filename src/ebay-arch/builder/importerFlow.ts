@@ -1,5 +1,5 @@
-import type { EbayClientCredentialsConfig, EbayTokenCache } from '../types';
-import { importEbayListings } from '../entrypoints/importEbayListings';
+import type { EbayClientCredentialsConfig, EbayTokenCache } from '../types/index.ts';
+import { importEbayListings } from '../entrypoints/importEbayListings.ts';
 
 export async function importEbayListingsFlow(params: {
   config: EbayClientCredentialsConfig;
