@@ -21,8 +21,8 @@ function getEnvOrThrow(name: string): string {
 export default async function handler(req: any, res: any) {
   try {
     const supabaseUrl = getEnvOrThrow('SUPABASE_URL');
-    const anonKey = getEnvOrThrow('SUPABASE_ANON_KEY');
-    const supabase = createClient(supabaseUrl, anonKey, { auth: { persistSession: false } });
+    const serviceRoleKey = getEnvOrThrow('SUPABASE_SERVICE_ROLE_KEY');
+    const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
 
     // Token cache por petición
     const tokenCache: EbayTokenCache = {};

@@ -18,18 +18,9 @@ export async function browseEbayAds(params: {
 
   const token: EbayToken = await getOAuthToken({ config, cache: tokenCache });
 
-  // Flujo mínimo para lograr “anuncios reales”: usamos Browse API equivalente via endpoint de anuncios.
-  // Nota: el endpoint exacto puede variar por entorno/compatibilidad; si eBay responde con error
-  // se deberá ajustar la ruta y parámetros.
-
-  // Para mantener el flujo implementable, usamos la API de "find"/"get" que permite IDs.
-  // Sin embargo, aquí no conocemos el endpoint definitivo del repo previo; por eso implementamos
-  // la llamada con parámetros mínimos y transformamos al formato EbayBrowseItem.
-
-  // Example de endpoint (ajustable):
-  // GET https://api.ebay.com/buy/browse/v1/item_summary/search?q=... (reemplazado posteriormente)
-
-  const query = `categoryId:${request.marketplaceId}`;
+  // Use valid search query for Browse API
+  // TODO: make configurable via EBAY_SEARCH_QUERY env var
+  const query = 'BMW';
 
   const url = new URL(
     config.environment === 'production'

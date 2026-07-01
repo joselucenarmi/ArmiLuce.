@@ -32,7 +32,7 @@ export async function insertListingsToDb(params: {
         images: l.images,
       })),
       {
-        onConflict: 'external_id,source',
+        onConflict: 'idx_listings_source_external',
       },
     );
 
