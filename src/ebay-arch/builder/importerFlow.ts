@@ -6,6 +6,7 @@ export async function importEbayListingsFlow(params: {
   marketplaceId: string;
   limit: number;
   tokenCache: EbayTokenCache;
+  categoryIds?: string[];
 }): Promise<{ imported: number }> {
   return importEbayListings(params);
 }

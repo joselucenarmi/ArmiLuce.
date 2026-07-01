@@ -43,10 +43,15 @@ Deno.serve(async (req: Request) => {
     // marketplaceId real debe configurarse. Usamos variable de entorno.
     const marketplaceId = getEnvOrThrow('EBAY_MARKETPLACE_ID');
 
+    // Límite total de anuncios a recuperar por ejecución, recorriendo las
+    // categorías oficiales de vehículos definidas en browseEbayItems.ts
+    // (paginado internamente). Configurable vía env sin tocar el código.
+    const limit = Number(Deno.env.get('EBAY_IMPORT_LIMIT') ?? '200');
+
     const result = await importEbayListingsFlow({
       config: configEbay,
       marketplaceId,
-      limit: 10,
+      limit,
       tokenCache,
     });
 

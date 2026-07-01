@@ -16,13 +16,16 @@ export async function importEbayListings(params: {
   marketplaceId: string;
   limit: number;
   tokenCache: EbayTokenCache;
+  /** Categorías eBay de vehículos a recorrer; por defecto usa la lista interna de browseEbayItems.ts */
+  categoryIds?: string[];
 }): Promise<{ imported: number }> {
-  const { config, marketplaceId, limit, tokenCache } = params;
+  const { config, marketplaceId, limit, tokenCache, categoryIds } = params;
 
   const browse: EbayBrowseResponse = await browseEbayAds({
     request: {
       marketplaceId,
       limit,
+      categoryIds,
     },
     config,
     tokenCache,
