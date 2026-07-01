@@ -18,7 +18,7 @@ export async function importEbayListings(params: {
   tokenCache: EbayTokenCache;
   /** Categorías eBay de vehículos a recorrer; por defecto usa la lista interna de browseEbayItems.ts */
   categoryIds?: string[];
-}): Promise<{ imported: number }> {
+}): Promise<{ imported: number; fetched: number; attempted: number }> {
   const { config, marketplaceId, limit, tokenCache, categoryIds } = params;
 
   const browse: EbayBrowseResponse = await browseEbayAds({
@@ -35,6 +35,8 @@ export async function importEbayListings(params: {
   const deduped = deduplicateListings(normalized);
 
   const db = await insertListingsToDb({ listings: deduped });
-  return { imported: db.inserted };
+  // fetched/attempted son campos adicionales (no rompen a quien solo lea
+  // `imported`) útiles para reportar duplicados descartados por marketplace.
+  return { imported: db.inserted, fetched: browse.items.length, attempted: db.attempted };
 }
 

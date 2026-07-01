@@ -4,45 +4,71 @@ import { getOAuthToken } from '../auth/getOAuthToken.ts';
 
 // Categorías oficiales de eBay (árbol "Motor: vehículos", id 9800) que
 // contienen anuncios de vehículos reales, NO piezas/accesorios.
-// Verificado contra la Browse API real para el marketplace EBAY_ES:
-// - 9801 Coches, 9804 Motos y 10495 Scooters devuelven vehículos reales.
-// - 79055 Furgonetas, 79054 Camiones y 60996 Caravanas son las categorías
-//   oficiales correctas aunque el inventario activo en EBAY_ES puede ser
-//   bajo o nulo en un momento dado (limitación de datos del marketplace,
-//   no del código: ver informe final).
+// IMPORTANTE: cada marketplace/sitio de eBay tiene su PROPIO árbol de
+// categorías (categoryTreeId distinto: ES=186, DE=77, FR=71, IT=101, GB=3),
+// por lo que los IDs de "Coches"/"Motos"/etc. no son los mismos en todos
+// los sitios aunque la categoría raíz 9800 sí coincide en los 5. Se
+// verificó cada ID contra la Taxonomy API y la Browse API reales para
+// cada marketplace (ver informe final).
 // SUV/todoterreno no tiene categoría propia en eBay: es una carrocería
-// dentro de "Coches" (9801), por lo que ya queda cubierto.
+// dentro de "Coches", por lo que ya queda cubierto en todos los sitios.
 // Maquinaria agrícola/construcción y embarcaciones se probaron con la API
-// real (categorías 11748, 26197 y 1293) y en EBAY_ES están dominadas
-// (>99%) por piezas y accesorios, no por máquinas/embarcaciones completas,
-// por lo que se excluyen para no reintroducir el problema original.
-const DEFAULT_VEHICLE_CATEGORY_IDS = [
-  '9801', // Coches (incluye SUV / todoterreno)
-  '9804', // Motos
-  '10495', // Scooters
-  '79055', // Furgonetas
-  '79054', // Camiones
-  '60996', // Caravanas / autocaravanas
-];
+// real (categorías 11748, 26197 y 1293 en ES) y están dominadas (>99%) por
+// piezas y accesorios, no por máquinas/embarcaciones completas, por lo que
+// se excluyen para no reintroducir el problema original.
+type MarketplaceCategoryConfig = {
+  categoryId: string;
+  minPrice: number;
+  currency: string;
+  label: string;
+};
 
-// Dentro de "Coches"/"Motos" eBay ES organiza las hojas del árbol POR MARCA
-// (p.ej. 9801 > 9837 BMW), y esa hoja mezcla vehículos completos y piezas de
-// esa marca sin una subcategoría propia que los separe. Se comprobó con la
-// API real que un filtro de precio mínimo elimina prácticamente toda la
-// contaminación de piezas/accesorios sin perder vehículos reales (ver
-// informe final). Precio mínimo por categoría, en EUR:
-const MIN_PRICE_EUR_BY_CATEGORY: Record<string, number> = {
-  '9801': 1500, // Coches
-  '9804': 300, // Motos
-  '10495': 200, // Scooters
-  '79055': 1500, // Furgonetas
-  '79054': 1500, // Camiones
-  '60996': 1500, // Caravanas / autocaravanas
+const MARKETPLACE_VEHICLE_CATEGORIES: Record<string, MarketplaceCategoryConfig[]> = {
+  EBAY_ES: [
+    { categoryId: '9801', minPrice: 1500, currency: 'EUR', label: 'Coches' },
+    { categoryId: '9804', minPrice: 300, currency: 'EUR', label: 'Motos' },
+    { categoryId: '10495', minPrice: 200, currency: 'EUR', label: 'Scooters' },
+    { categoryId: '79055', minPrice: 1500, currency: 'EUR', label: 'Furgonetas' },
+    { categoryId: '79054', minPrice: 1500, currency: 'EUR', label: 'Camiones' },
+    { categoryId: '60996', minPrice: 1500, currency: 'EUR', label: 'Caravanas' },
+  ],
+  EBAY_DE: [
+    { categoryId: '9801', minPrice: 1500, currency: 'EUR', label: 'Automobile' },
+    { categoryId: '9804', minPrice: 300, currency: 'EUR', label: 'Motorräder' },
+    { categoryId: '45642', minPrice: 1500, currency: 'EUR', label: 'Nutzfahrzeuge' },
+    { categoryId: '44794', minPrice: 1500, currency: 'EUR', label: 'Wohnwagen & Wohnmobile' },
+  ],
+  EBAY_FR: [
+    { categoryId: '9801', minPrice: 1500, currency: 'EUR', label: 'Autos' },
+    { categoryId: '115621', minPrice: 300, currency: 'EUR', label: 'Motos, scooters, quads' },
+    { categoryId: '79053', minPrice: 1500, currency: 'EUR', label: 'Utilitaires' },
+    { categoryId: '44790', minPrice: 1500, currency: 'EUR', label: 'Caravanes' },
+  ],
+  EBAY_IT: [
+    { categoryId: '9801', minPrice: 1500, currency: 'EUR', label: 'Auto' },
+    { categoryId: '9804', minPrice: 300, currency: 'EUR', label: 'Moto e scooter' },
+    { categoryId: '14256', minPrice: 1500, currency: 'EUR', label: 'Veicoli commerciali' },
+    { categoryId: '105646', minPrice: 1500, currency: 'EUR', label: 'Camper e roulotte' },
+  ],
+  EBAY_GB: [
+    { categoryId: '9801', minPrice: 1300, currency: 'GBP', label: 'Cars' },
+    { categoryId: '422', minPrice: 260, currency: 'GBP', label: 'Motorcycles & Scooters' },
+    { categoryId: '122202', minPrice: 1300, currency: 'GBP', label: 'Vans/Pickups' },
+    { categoryId: '122192', minPrice: 1300, currency: 'GBP', label: 'Lorries/Trucks' },
+    { categoryId: '121904', minPrice: 1300, currency: 'GBP', label: 'Campers, Caravans & Motorhomes' },
+  ],
 };
 
 // Máximo de resultados por página que admite la Browse API de eBay.
 const EBAY_BROWSE_MAX_PAGE_SIZE = 200;
 
+
+// Devuelve la configuración de categorías de vehículos a usar para un
+// marketplace dado; si el marketplace no está mapeado explícitamente, se
+// usa la configuración de EBAY_ES como fallback (comportamiento previo).
+export function getVehicleCategoriesForMarketplace(marketplaceId: string): MarketplaceCategoryConfig[] {
+  return MARKETPLACE_VEHICLE_CATEGORIES[marketplaceId] ?? MARKETPLACE_VEHICLE_CATEGORIES.EBAY_ES;
+}
 
 function assertString(value: unknown, name: string): string {
   if (typeof value !== 'string' || !value.trim()) {
@@ -119,10 +145,10 @@ export async function browseEbayAds(params: {
       ? 'https://api.ebay.com/buy/browse/v1/item_summary/search'
       : 'https://api.sandbox.ebay.com/buy/browse/v1/item_summary/search';
 
-  const categoryIds =
+  const categoryConfigs: MarketplaceCategoryConfig[] =
     request.categoryIds && request.categoryIds.length > 0
-      ? request.categoryIds
-      : DEFAULT_VEHICLE_CATEGORY_IDS;
+      ? request.categoryIds.map((id) => ({ categoryId: id, minPrice: 0, currency: 'EUR', label: id }))
+      : getVehicleCategoriesForMarketplace(request.marketplaceId);
 
   const overallLimit = request.limit;
   const seenItemIds = new Set<string>();
@@ -130,7 +156,7 @@ export async function browseEbayAds(params: {
 
   // Recorre cada categoría de vehículos paginando (offset/limit) hasta
   // agotar sus resultados o alcanzar el límite total solicitado.
-  for (const categoryId of categoryIds) {
+  for (const { categoryId, minPrice, currency } of categoryConfigs) {
     if (items.length >= overallLimit) break;
 
     let offset = 0;
@@ -144,10 +170,11 @@ export async function browseEbayAds(params: {
       url.searchParams.set('category_ids', categoryId);
       url.searchParams.set('limit', String(pageSize));
       url.searchParams.set('offset', String(offset));
+      // Prioriza anuncios recién publicados (parámetro oficial de la Browse API).
+      url.searchParams.set('sort', 'newlyListed');
 
-      const minPrice = MIN_PRICE_EUR_BY_CATEGORY[categoryId];
-      if (minPrice !== undefined) {
-        url.searchParams.set('filter', `price:[${minPrice}..],priceCurrency:EUR`);
+      if (minPrice > 0) {
+        url.searchParams.set('filter', `price:[${minPrice}..],priceCurrency:${currency}`);
       }
 
       let res: Response;

@@ -7,7 +7,7 @@ export async function importEbayListingsFlow(params: {
   limit: number;
   tokenCache: EbayTokenCache;
   categoryIds?: string[];
-}): Promise<{ imported: number }> {
+}): Promise<{ imported: number; fetched: number; attempted: number }> {
   return importEbayListings(params);
 }
 
