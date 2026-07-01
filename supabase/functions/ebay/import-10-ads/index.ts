@@ -59,7 +59,7 @@ Deno.serve(async (req: Request) => {
     // (sumando todos los marketplaces), configurable vía env sin tocar
     // código. Se reparte a partes iguales entre marketplaces y se recorta
     // si algún marketplace no agota su cupo, para no superar nunca el total.
-    const totalLimit = Number(Deno.env.get('EBAY_IMPORT_LIMIT') ?? '200');
+    const totalLimit = Number(Deno.env.get('EBAY_IMPORT_LIMIT') ?? '500');
     const perMarketplaceLimit = Math.max(1, Math.ceil(totalLimit / marketplaces.length));
 
     const perMarketplaceReport: Array<{

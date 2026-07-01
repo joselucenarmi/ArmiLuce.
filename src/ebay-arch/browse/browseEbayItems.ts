@@ -77,39 +77,103 @@ function assertString(value: unknown, name: string): string {
   return value;
 }
 
-function mapBrowseItem(it: any): EbayBrowseItem {
-  const itemId = assertString(it?.itemId ?? it?.item?.itemId ?? it?.item?.id, 'itemId');
+type EbayBrowseItemSummaryImage = { imageUrl?: unknown };
 
-  const title = typeof it?.title === 'string' ? it.title : undefined;
-  const description = typeof it?.shortDescription === 'string' ? it.shortDescription : undefined;
+type EbayBrowseItemSummaryAdditionalImage = { imageUrl?: unknown };
+
+type EbayBrowseItemSummaryLocation = {
+  city?: unknown;
+  country?: unknown;
+};
+
+type EbayBrowseItemSummaryPriceValue = {
+  amount?: unknown;
+  currency?: unknown;
+};
+
+type EbayBrowseItemSummaryPrice = {
+  value?: unknown | EbayBrowseItemSummaryPriceValue;
+  amount?: unknown;
+  currency?: unknown;
+};
+
+type EbayBrowseItemSummary = {
+  itemId?: unknown;
+  item?: { itemId?: unknown; id?: unknown };
+  title?: unknown;
+  shortDescription?: unknown;
+  image?: EbayBrowseItemSummaryImage;
+  additionalImages?: EbayBrowseItemSummaryAdditionalImage[];
+  itemWebUrl?: unknown;
+  itemLocation?: EbayBrowseItemSummaryLocation;
+  categories?: Array<{ categoryId?: unknown }>;
+  categoryId?: unknown;
+  price?: EbayBrowseItemSummaryPrice;
+};
+
+function mapBrowseItem(it: unknown): EbayBrowseItem {
+  const item = it as EbayBrowseItemSummary;
+  const itemId = assertString(
+    item?.itemId ?? item?.item?.itemId ?? item?.item?.id,
+    'itemId',
+  );
+
+  const title = typeof item?.title === 'string' ? item.title : undefined;
+  const description = typeof item?.shortDescription === 'string' ? item.shortDescription : undefined;
 
   // Browse API item_summary shape: image.imageUrl (single) + additionalImages[].imageUrl
   const galleryURL = [
-    ...(typeof it?.image?.imageUrl === 'string' ? [it.image.imageUrl] : []),
-    ...(Array.isArray(it?.additionalImages)
-      ? it.additionalImages
-          .map((img: any) => img?.imageUrl)
-          .filter((u: any) => typeof u === 'string')
+    ...(typeof item?.image?.imageUrl === 'string' ? [item.image.imageUrl] : []),
+    ...(Array.isArray(item?.additionalImages)
+      ? item.additionalImages
+          .map((img) => img?.imageUrl)
+          .filter((u): u is string => typeof u === 'string')
       : []),
   ];
 
-  const viewItemURL = typeof it?.itemWebUrl === 'string' ? it.itemWebUrl : undefined;
+  const viewItemURL = typeof item?.itemWebUrl === 'string' ? item.itemWebUrl : undefined;
 
   const location =
-    typeof it?.itemLocation?.city === 'string'
-      ? it.itemLocation.city
-      : typeof it?.itemLocation?.country === 'string'
-        ? it.itemLocation.country
+    typeof item?.itemLocation?.city === 'string'
+      ? item.itemLocation.city
+      : typeof item?.itemLocation?.country === 'string'
+        ? item.itemLocation.country
         : undefined;
 
-  const categoryId = Array.isArray(it?.categories) && it.categories[0]?.categoryId
-    ? String(it.categories[0].categoryId)
-    : it?.categoryId
-      ? String(it.categoryId)
+  const categoryId = Array.isArray(item?.categories) && item.categories[0]?.categoryId
+    ? String(item.categories[0].categoryId)
+    : item?.categoryId
+      ? String(item.categoryId)
       : undefined;
 
-  const priceValue = it?.price?.value ?? it?.price?.value?.amount ?? it?.price?.amount;
-  const priceCurrency = it?.price?.currency ?? it?.price?.value?.currency;
+  const priceValueRaw = (() => {
+    const direct = item?.price?.value;
+    if (direct !== undefined) return direct;
+
+    const valueObj = item?.price?.value;
+    if (valueObj && typeof valueObj === 'object') {
+      const v = valueObj as EbayBrowseItemSummaryPriceValue;
+      return v.amount;
+    }
+    return undefined;
+  })();
+
+  const priceCurrencyRaw = (() => {
+    const direct = item?.price?.currency;
+    if (direct !== undefined) return direct;
+
+    const valueObj = item?.price?.value;
+    if (valueObj && typeof valueObj === 'object') {
+      const v = valueObj as EbayBrowseItemSummaryPriceValue;
+      return v.currency;
+    }
+    return undefined;
+  })();
+
+  const priceValue =
+    priceValueRaw !== undefined && typeof priceValueRaw !== 'object' ? priceValueRaw : undefined;
+  const priceCurrency =
+    priceCurrencyRaw !== undefined && typeof priceCurrencyRaw !== 'object' ? priceCurrencyRaw : undefined;
 
   const price =
     priceValue !== undefined
@@ -198,10 +262,14 @@ export async function browseEbayAds(params: {
         break;
       }
 
-      const data = (await res.json()) as any;
-      total = typeof data?.total === 'number' ? data.total : 0;
+      const data: unknown = await res.json();
 
-      const rawItems: any[] = Array.isArray(data?.itemSummaries) ? data.itemSummaries : [];
+      type EbayBrowseApiResponse = { total?: unknown; itemSummaries?: unknown };
+      const parsed = data as EbayBrowseApiResponse;
+
+      total = typeof parsed?.total === 'number' ? parsed.total : 0;
+
+      const rawItems: unknown[] = Array.isArray(parsed?.itemSummaries) ? parsed.itemSummaries : [];
       if (rawItems.length === 0) break;
 
       for (const it of rawItems) {
